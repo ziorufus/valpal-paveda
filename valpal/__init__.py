@@ -100,7 +100,8 @@ def main(global_config, **settings):
         renderer='compare.mako')
 
     config.add_settings({
-        'clld.publisher_logo': 'valpal:static/logo-unipv-logo.png'
+        'clld.publisher_logo': 'valpal:static/logo-unipv-logo.png',
+        'github_repos': 'ziorufus/valpal-paveda'
         # 'clld.privacy_policy_url': 'https://example.com',
     })
 
