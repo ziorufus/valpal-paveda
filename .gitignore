@@ -129,3 +129,10 @@ dmypy.json
 .pyre/
 
 *~
+
+# PaVeDa
+db-init.sqlite
+db-prod.sqlite
+test-init.ini
+test-prod.ini
+

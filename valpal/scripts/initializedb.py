@@ -38,14 +38,15 @@ def main(args):
         common.Dataset,
         valpal.__name__,
         id=valpal.__name__,
-        domain='valpal.info',
-        name='The Valency Patterns Leipzig online database',
+        domain='paveda.unipv.it',
+        name='PaVeDa – Pavia Verbs Database',
 
-        description='Valency Patterns Leipzig',
+        description='Pavia Verbs Database',
         published=datetime.date(2013, 1, 1),
-        publisher_name="Max Planck Institute for Evolutionary Anthropology",
-        publisher_place="Leipzig",
-        publisher_url="http://www.eva.mpg.de",
+        publisher_name="University of Pavia",
+        publisher_place="Pavia",
+        # publisher_logo="valpal:static/logo-unipv-logo.png",
+        publisher_url="http://www.unipv.it",
         license="https://creativecommons.org/licenses/by/3.0/",
         jsondata={
             'license_icon': 'cc-by.png',
@@ -182,6 +183,7 @@ def main(args):
     for row in iteritems(
         args.cldf, 'ExampleTable',
         'id', 'languageReference', 'primaryText', 'analyzedWord', 'gloss',
+        'SourceText', 'Link',
         'translatedText', 'comment', 'Original_Orthography', 'Translation_Other',
         'Number', 'Example_Type'
     ):
@@ -193,6 +195,8 @@ def main(args):
             description=row['translatedText'],
             analyzed='\t'.join(row.get('analyzedWord') or ()),
             gloss='\t'.join(row.get('gloss') or ()),
+            SourceText=row['SourceText'],
+            Link=row['Link'],
             type=row.get('Example_Type'),
             comment=row.get('comment'),
             original_script=row.get('Original_Orthography'),
@@ -244,7 +248,7 @@ def main(args):
 
     for row in iteritems(
         args.cldf, 'alternations.csv',
-        'id', 'name', 'description', 'Alternation_Type', 'Coding_Frames_Text',
+        'id', 'name', 'description', 'Radi', 'Alternation_Type', 'Coding_Frames_Text',
         'Complexity', 'languageReference'
     ):
         data.add(
@@ -253,6 +257,7 @@ def main(args):
             id=row['id'],
             name=row['name'],
             description=row['description'],
+            radi=row['Radi'],
             alternation_type=row['Alternation_Type'],
             coding_frames_text=row['Coding_Frames_Text'],
             complexity='Complexity',

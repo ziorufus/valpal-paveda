@@ -40,4 +40,15 @@ ${h.rendered_sentence(ctx)|n}
 <dd>${h.linked_references(request, ctx)|n}</dd>
 % endif
 % endif
+% if ctx.SourceText or ctx.Link:
+<dt>${_('Source')}:</dt>
+<dd>
+% if ctx.SourceText:
+${ctx.SourceText}
+% endif
+% if ctx.Link:
+<a href="${ctx.Link}"><i class="icon-share">&nbsp;</i> [Link]</a>
+% endif
+</dd>
+% endif
 </dl>

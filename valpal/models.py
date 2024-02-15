@@ -45,6 +45,8 @@ class Example(CustomModelMixin, common.Sentence):
     pk = Column(Integer, ForeignKey('sentence.pk'), primary_key=True)
     number = Column(Integer)
     translation_other = Column(Unicode)
+    Link = Column(Unicode)
+    SourceText = Column(Unicode)
 
     contribution_pk = Column(Integer, ForeignKey('contribution.pk'))
     contribution = relationship('Contribution', backref='examples')
@@ -125,6 +127,7 @@ class CodingFrameExample(Base):
 
 @implementer(IVerbCodingFrameMicrorole)
 class VerbCodingFrameMicrorole(Base, common.IdNameDescriptionMixin):
+#class VerbCodingFrameMicrorole(Base):
     verb_pk = Column(Integer, ForeignKey('verb.pk'))
     verb = relationship('Verb')
     codingframe_pk = Column(Integer, ForeignKey('codingframe.pk'))
@@ -151,6 +154,7 @@ class Alternation(Base, common.IdNameDescriptionMixin):
 
     alternation_type = Column(Unicode)
     coding_frames_text = Column(Unicode)
+    radi = Column(Unicode)
     complexity = Column(Unicode)
 
 

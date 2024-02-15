@@ -103,6 +103,7 @@ def main(global_config, **settings):
         ('codingframes', partial(menu_item, 'codingframes', label='All coding frames')),
         ('microroles', partial(menu_item, 'microroles')),
         ('alternations', partial(menu_item, 'alternations', label='All alternations')),
+        ('compare', partial(menu_item, 'compare', label="Compare languages")),
     )
 
     config.registry.registerUtility(LanguageByFamilyMapMarker(), IMapMarker)
@@ -131,6 +132,17 @@ def main(global_config, **settings):
         'project', 'database', 'download', 'glossary', 'credits', 'legal',
         'contact',
     ])
+
+    config.add_route_and_view(
+        'compare',
+        '/compare',
+        views.compare,
+        renderer='compare.mako')
+
+    config.add_settings({
+        'clld.publisher_logo': 'valpal:static/logo-unipv-logo.png'
+        # 'clld.privacy_policy_url': 'https://example.com',
+    })
 
     # unbreak links to the old webapp
 

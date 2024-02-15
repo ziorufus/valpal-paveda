@@ -2,7 +2,7 @@
 <%namespace name="util" file="../util.mako"/>
 <%! active_menu_item = "parameters" %>
 <%block name="title">${_('Parameter')} ${ctx.name}</%block>
-
+<% import valpal.models as m %>
 
 
 <h2>${_('Parameter')} ${ctx.name}</h2>
@@ -41,4 +41,10 @@ ${', '.join(h.link(request, m) for m in ctx.microroles) | n}
 ${(map_ or request.map).render()}
 % endif
 
+<h2>Basic frames for ${ctx.name}</h2>
+
 ${request.get_datatable('values', h.models.Value, parameter=ctx).render()}
+
+<h2>Alternations for ${ctx.name}</h2>
+
+${request.get_datatable('alternationvalues', m.AlternationValue, verbmeaning=ctx).render()}

@@ -1,5 +1,5 @@
-import html
 
+import html
 from sqlalchemy import case, desc
 from sqlalchemy.orm import aliased
 
@@ -312,9 +312,17 @@ class Verbs(DataTable):
     __constraints__ = [common.Contribution, models.CodingFrame, common.Parameter]
 
     def base_query(self, query):
-        query = query.join(common.ValueSet)\
-            .join(models.LanguageContribution)\
-            .join(models.VerbMeaning)
+        query = query.outerjoin(common.ValueSet)\
+            .outerjoin(
+                models.LanguageContribution,
+                models.LanguageContribution.language_pk == common.ValueSet.language_pk)\
+            .outerjoin(common.Parameter)\
+            .outerjoin(
+                models.CodingFrame,
+                models.Verb.basic_codingframe)
+        # query = query.join(common.ValueSet)\
+        #     .join(models.LanguageContribution)\
+        #     .join(models.VerbMeaning)
 
         if self.parameter:
             query = query.filter(
@@ -389,18 +397,20 @@ class Alternations(DataTable):
             self, 'alternation_type', sTitle='Type',
             choices=['Coded', 'Uncoded'])
         description = PlainTextCol(self, 'description')
+        radi = Col(self, 'radi', sTitle='Alternation class', choices=["Rearranging", "Augmenting", "Decreasing", "Identifying"])
+
         if self.contribution:
-            return [name, type_, description]
+            return [name, radi, type_, description]
         else:
             contribution = LinkCol(
                 self, 'contribution', model_col=common.Contribution.name,
                 get_object=lambda o: o.language.contributions[0],
                 label='Language')
-            return [contribution, name, type_, description]
+            return [contribution, name, radi, type_, description]
 
 
 class AlternationValues(DataTable):
-    __constraints__ = [models.Alternation, models.CodingFrame, models.Verb]
+    __constraints__ = [models.Alternation, models.CodingFrame, models.Verb, models.VerbMeaning, models.LanguageContribution]
 
     basic_coding_frame_alias = aliased(models.CodingFrame)
     derived_coding_frame_alias = aliased(models.CodingFrame)
@@ -419,10 +429,19 @@ class AlternationValues(DataTable):
             query = query.join(models.Verb)
             query = query.join(
                 self.basic_coding_frame_alias,
-                models.Verb.basic_codingframe)
+                models.Verb.basic_codingframe,
+                isouter=True)\
+            .join(
+                self.derived_coding_frame_alias,
+                models.AlternationValue.derived_codingframe,
+                isouter=True)\
+
             query = query.join(common.ValueSet)
             query = query.join(models.VerbMeaning)
+            query = query.join(models.LanguageContribution)
 
+
+        query = query.filter(models.AlternationValue.alternation_occurs != 'Never')
         # coding frame means *derived* coding frame here
         if self.codingframe:
             query = query\
@@ -434,6 +453,18 @@ class AlternationValues(DataTable):
                 self.derived_coding_frame_alias,
                 models.AlternationValue.derived_codingframe)
 
+        if self.languagecontribution:
+            query = query.filter(models.LanguageContribution.name == self.languagecontribution.name)
+
+        if self.verbmeaning:
+            query = query.filter(models.VerbMeaning.name == self.verbmeaning.name)
+
+        if self.verb:
+            query = query.filter(models.AlternationValue.verb == self.verb)
+
+        if self.alternation:
+            query = query.filter(models.AlternationValue.alternation == self.alternation)
+
         return query
 
     def default_order(self):
@@ -444,7 +475,7 @@ class AlternationValues(DataTable):
                 {
                     'Regularly': 0,
                     'Marginally': 1,
-                    'Never': 2,
+                    # 'Never': 2,
                     'No data': 3,
                 },
                 value=models.AlternationValue.alternation_occurs,
@@ -453,42 +484,104 @@ class AlternationValues(DataTable):
             return models.Alternation.name, models.Verb.name
 
     def col_defs(self):
-        alternation = LinkCol(
-            self, 'alternation', model_col=models.Alternation.name,
-            get_object=lambda o: o.alternation)
-        meaning = LinkCol(
-            self, 'meaning', model_col=models.VerbMeaning.name,
-            get_object=lambda o: o.verb.valueset.parameter,
-            sTitle='Verb Meaning')
-        verb = LinkCol(
-            self, 'verb_form', model_col=models.Verb.name,
-            get_object=lambda o: o.verb)
-        basic_frame = LinkCol(
-            self, 'basic_coding_frame', model_col=self.basic_coding_frame_alias.name,
-            get_object=lambda o: o.verb.basic_codingframe)
-        derived_frame = LinkCol(
-            self, 'derived_coding_frame', model_col=self.derived_coding_frame_alias.name,
-            get_object=lambda o: o.derived_codingframe)
-        occurrence = Col(
-            self, 'alternation_occurs', sTitle='Occurs',
-            choices=['Never', 'Regularly', 'No data', 'Marginally'])
-        comment = PlainTextCol(self, 'comment', bSortable=False)
-        example_count = Col(
-            self, 'example_count',
-            sTitle='#&nbsp;Ex.', bSortable=False, bSearchable=False)
-        details = LinkToSelfCol(self, 'details', sTitle='')
 
         cols = []
+
+        if self.verbmeaning:
+            cols.extend((
+                LinkCol(
+                    self, 'contribution', sTitle='Language',
+                    model_col=models.LanguageContribution.name,
+                    get_object=lambda o: o.verb.valueset.contribution),
+            ))
+
         if not self.alternation:
-            cols.append(alternation)
+            cols.extend((
+                LinkCol(
+                self, 'alternation', model_col=models.Alternation.name,
+                get_object=lambda o: o.alternation),
+            ))
+
+        if not self.verb and not self.verbmeaning:
+            cols.extend((
+                LinkCol(
+                    self, 'meaning', model_col=models.VerbMeaning.name,
+                    get_object=lambda o: o.verb.valueset.parameter,
+                    sTitle='Verb Meaning'),
+            ))
+
         if not self.verb:
-            cols.append(meaning)
-            cols.append(verb)
-            cols.append(basic_frame)
+            cols.extend((
+                LinkCol(
+                    self, 'verb_form', model_col=models.Verb.name,
+                    get_object=lambda o: o.verb),
+                LinkCol(
+                    self, 'basic_coding_frame', model_col=self.basic_coding_frame_alias.name,
+                    get_object=lambda o: o.verb.basic_codingframe),
+            ))
+
         if not self.codingframe:
-            cols.append(derived_frame)
-            cols.append(occurrence)
-        cols.extend((comment, example_count, details))
+            cols.extend((
+                LinkCol(
+                    self, 'derived_coding_frame', model_col=self.derived_coding_frame_alias.name,
+                    get_object=lambda o: o.derived_codingframe),
+            ))
+        if not self.alternation:
+            cols.extend((
+                Col(self, 'radi', model_col=models.Alternation.radi, get_object=lambda o: o.alternation,
+                    sTitle='Alternation class', choices=["Rearranging", "Augmenting", "Decreasing", "Identifying"]),
+            ))
+        if not self.codingframe:
+            cols.extend((
+                Col(
+                    self, 'alternation_occurs',
+                    # sTitle='Occurs', choices=['Never', 'Regularly', 'No data', 'Marginally']),
+                    sTitle='Occurs', choices=['Regularly', 'No data', 'Marginally']),
+            ))
+
+        cols.extend((
+            PlainTextCol(self, 'comment', bSortable=False),
+            Col(
+                self, 'example_count',
+                sTitle='#&nbsp;Ex.', bSortable=False, bSearchable=False),
+            LinkToSelfCol(self, 'details', sTitle='')))
+
+        # alternation = LinkCol(
+        #     self, 'alternation', model_col=models.Alternation.name,
+        #     get_object=lambda o: o.alternation)
+        # meaning = LinkCol(
+        #     self, 'meaning', model_col=models.VerbMeaning.name,
+        #     get_object=lambda o: o.verb.valueset.parameter,
+        #     sTitle='Verb Meaning')
+        # verb = LinkCol(
+        #     self, 'verb_form', model_col=models.Verb.name,
+        #     get_object=lambda o: o.verb)
+        # basic_frame = LinkCol(
+        #     self, 'basic_coding_frame', model_col=self.basic_coding_frame_alias.name,
+        #     get_object=lambda o: o.verb.basic_codingframe)
+        # derived_frame = LinkCol(
+        #     self, 'derived_coding_frame', model_col=self.derived_coding_frame_alias.name,
+        #     get_object=lambda o: o.derived_codingframe)
+        # occurrence = Col(
+        #     self, 'alternation_occurs', sTitle='Occurs',
+        #     choices=['Never', 'Regularly', 'No data', 'Marginally'])
+        # comment = PlainTextCol(self, 'comment', bSortable=False)
+        # example_count = Col(
+        #     self, 'example_count',
+        #     sTitle='#&nbsp;Ex.', bSortable=False, bSearchable=False)
+        # details = LinkToSelfCol(self, 'details', sTitle='')
+
+        # cols = []
+        # if not self.alternation:
+        #     cols.append(alternation)
+        # if not self.verb:
+        #     cols.append(meaning)
+        #     cols.append(verb)
+        #     cols.append(basic_frame)
+        # if not self.codingframe:
+        #     cols.append(derived_frame)
+        #     cols.append(occurrence)
+        # cols.extend((comment, example_count, details))
         return cols
 
     def get_options(self):

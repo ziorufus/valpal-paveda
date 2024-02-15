@@ -30,11 +30,13 @@ ${util.data()}
                     % endfor
                 </ul>
 
+                % if False:
                 <h3>
                     How to cite the ${ctx.name} dataset
                     ${h.button('BibTeX', onclick=h.JSModal.show('BibTeX citation', None, '<pre>{}</pre>'.format(bibtex.render(ctx, request))))}
                 </h3>
                 <pre class="citation">${citation.render(ctx, request).rstrip('\n')}</pre>
+                % endif
 
                 % if ctx.language.markup_description:
                 <h3>Comments</h3>
